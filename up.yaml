@@ -1,7 +1,55 @@
 ---
 - hosts: localhost
   tasks:
-  - name: "Install kubernetes python package"
-    pip:
-      name: kubernetes
-      state: present
+    - name: "Install required Python packages"
+      pip:
+        name:
+          - kubernetes
+          - jinja2
+        state: present
+
+    - name: "Create Kubernetes namespace for Jenkins"
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: jenkins
+        state: present
+
+    - name: "Apply Jenkins deployment"
+      kubernetes.core.k8s:
+        state: present
+        src: jenkins-deployment.yaml
+
+    - name: "Create Jenkins service"
+      kubernetes.core.k8s:
+        state: present
+        src: jenkins-service.yaml
+
+    - name: "Create Jenkins RBAC role"
+      kubernetes.core.k8s:
+        state: present
+        src: jenkins-rbac.yaml
+
+    - name: "Create Ngrok ingress for Jenkins"
+      kubernetes.core.k8s:
+        state: present
+        src: jenkins-ngrok-ingress.yaml
+
+    - name: "Wait for Jenkins to be ready"
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: jenkins
+        label_selectors:
+          - "app=jenkins"
+      register: jenkins_pods
+      until: jenkins_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+      retries: 10
+      delay: 30
+
+    - name: "Set Jenkins admin password"
+      set_fact:
+        jenkins_password_decoded: "10cbd59d97b644b690583a86dbca74cf"
+
+    - name: "Print Jenkins admin password"
+      debug:
+        msg: "Jenkins Admin Password: {{ jenkins_password_decoded }}"

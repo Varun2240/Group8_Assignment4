@@ -1,7 +1,29 @@
 ---
 - hosts: localhost
   tasks:
-  - name: "remove kubernetes python package"
-    pip:
-      name: kubernetes
-      state: absent
+    - name: "Delete Ngrok ingress for Jenkins"
+      kubernetes.core.k8s:
+        state: absent
+        src: jenkins-ngrok-ingress.yaml
+
+    - name: "Delete Jenkins RBAC role"
+      kubernetes.core.k8s:
+        state: absent
+        src: jenkins-rbac.yaml
+
+    - name: "Delete Jenkins service"
+      kubernetes.core.k8s:
+        state: absent
+        src: jenkins-service.yaml
+
+    - name: "Delete Jenkins deployment"
+      kubernetes.core.k8s:
+        state: absent
+        src: jenkins-deployment.yaml
+
+    - name: "Delete Kubernetes namespace for Jenkins"
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: jenkins
+        state: absent
